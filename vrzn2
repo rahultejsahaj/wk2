@@ -1,3 +1,6 @@
+data = [(1.0, 2.0, 10.0), (3.0, 4.0, 20.0), (5.0, 6.0, 30.0)]
+df = spark.createDataFrame(data, ["feature1", "feature2", "feature3"])
+
 >>> x
 array([2., 8., 5.])
 >>> (x - x.mean())/x.std()
