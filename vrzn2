@@ -1,45 +1,67 @@
-stages = []
-assemblerInputs = df.columns
-assemblerInputs = [column for column in assemblerInputs if column not in columns_to_remove_from_assembler]
-#add vector assembler
-assembler = VectorAssembler(inputCols=assemblerInputs, outputCol="features_nonscaled")
-stages += [assembler]
+from pyspark.sql import SparkSession
+from pyspark.ml.feature import VectorAssembler, StandardScaler
+from pyspark.ml.linalg import Vectors
 
-col_scaler = StandardScaler(inputCol='features_nonscaled', outputCol='features',withStd=True, withMean=False)
-stages += [col_scaler]
+# Initialize Spark session
+spark = SparkSession.builder.appName("StandardScalerExample").getOrCreate()
 
-pipeline = Pipeline(stages = stages)
-assemblerModel = pipeline.fit(df)
+# Sample DataFrame with numerical columns
+data = [(1.0, 2.0, 10.0), (3.0, 4.0, 20.0), (5.0, 6.0, 30.0)]
+df = spark.createDataFrame(data, ["feature1", "feature2", "feature3"])
+
+# Combine all features into a single vector column using VectorAssembler
+assembler = VectorAssembler(inputCols=["feature1", "feature2", "feature3"], outputCol="features")
+df_vector = assembler.transform(df)
+
+# Apply StandardScaler
+scaler = StandardScaler(inputCol="features", outputCol="scaledFeatures", withMean=True, withStd=True)
+scaler_model = scaler.fit(df_vector)
+
+# Apply scaling
+scaled_df = scaler_model.transform(df_vector)
+
+# Show the scaled features
+scaled_df.select("scaledFeatures").show(truncate=False)
+
+# Get the mean and std used for scaling in PySpark
+mean_spark = scaler_model.mean.toArray()
+std_spark = scaler_model.std.toArray()
+
+print("Mean (PySpark):", mean_spark)
+print("Std Dev (PySpark):", std_spark)
+
+# Stop Spark session
+spark.stop()
 
 
-def standard_scale_2(df, columns_to_scale):
-    """
-    Args:
-    df : spark dataframe
-    columns_to_scale : list of columns to standard scale
-    """
-    from pyspark.ml.feature import StandardScaler
-    from pyspark.ml import Pipeline
-    from pyspark.ml.feature import VectorAssembler
-    from pyspark.ml.functions import vector_to_array
-    
-    # UDF for converting column type from vector to double type
-    unlist = udf(lambda x: round(float(list(x)[0]),3), DoubleType())
-    
-    # Iterating over columns to be scaled
-    for i in columns_to_scale:
 
-      # VectorAssembler Transformation - Converting column to vector type
-      assembler = VectorAssembler(inputCols=[i],outputCol=i+"_Vect")
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
-      # MinMaxScaler Transformation
-      scaler = StandardScaler(inputCol=i+"_Vect", outputCol=i+"_Scaled")
+# Example DataFrame with numerical data
+data = {
+    'feature1': [1.0, 3.0, 5.0],
+    'feature2': [2.0, 4.0, 6.0],
+    'feature3': [10.0, 20.0, 30.0]
+}
+df = pd.DataFrame(data)
 
-      # Pipeline of VectorAssembler and MinMaxScaler
-      pipeline = Pipeline(stages=[assembler, scaler])
+# Initialize StandardScaler
+scaler = StandardScaler()
 
-      # Fitting pipeline on dataframe
-      df = pipeline.fit(df).transform(df).withColumn(i+"_Scaled", unlist(i+"_Scaled")).drop(i+"_Vect",i).withColumnRenamed(i+"_scaled",i)
-    return df
+# Apply StandardScaler to all numerical columns
+scaled_data = scaler.fit_transform(df)
 
-df_standardized_manual = (df - df.mean()) / df.std(ddof=0)
+# Get the mean and std used for scaling
+mean_sklearn = scaler.mean_
+scale_sklearn = scaler.scale_
+
+# If you want it back as a DataFrame
+scaled_df = pd.DataFrame(scaled_data, columns=df.columns)
+
+print("Scaled DataFrame (scikit-learn):")
+print(scaled_df)
+
+# Print the mean and standard deviation
+print("Mean (scikit-learn):", mean_sklearn)
+print("Std Dev (scikit-learn):", scale_sklearn)
