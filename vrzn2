@@ -41,3 +41,5 @@ def standard_scale_2(df, columns_to_scale):
       # Fitting pipeline on dataframe
       df = pipeline.fit(df).transform(df).withColumn(i+"_Scaled", unlist(i+"_Scaled")).drop(i+"_Vect",i).withColumnRenamed(i+"_scaled",i)
     return df
+
+df_standardized_manual = (df - df.mean()) / df.std(ddof=0)
