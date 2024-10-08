@@ -1,59 +1,49 @@
-# Import required libraries
-from sklearn.preprocessing import StandardScaler
-import numpy as np
-from pyspark.sql import SparkSession
-from pyspark.ml.feature import StandardScaler as SparkStandardScaler
-from pyspark.ml.linalg import Vectors
-from pyspark.sql import Row
+>>> x
+array([2., 8., 5.])
+>>> (x - x.mean())/x.std()
+array([-1.22474487,  1.22474487,  0.        ])
 
-# Step 1: StandardScaler using scikit-learn
-# Create some sample data
-data = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+>>> scaler = StandardScaler(with_mean=True, with_std=True)
+>>> data
+[[2.0], [8.0], [5.0]]
+>>> print(scaler.fit(data).transform(data))
+[[-1.22474487]
+ [ 1.22474487]
+ [ 0.        ]]
 
-# Compute mean and std for sklearn
-scaler_sklearn = StandardScaler()
-scaled_data_sklearn = scaler_sklearn.fit_transform(data)
 
-mean_sklearn = scaler_sklearn.mean_
-scale_sklearn = scaler_sklearn.scale_
 
-print("Scikit-learn StandardScaler output:")
-print(scaled_data_sklearn)
-print("Scikit-learn Mean:", mean_sklearn)
-print("Scikit-learn Std Dev:", scale_sklearn)
+df = spark.createDataFrame(
+    np.array(range(1,10,1)).reshape(3,3).tolist(),
+    ["int1", "int2", "int3"]
+)
+df.show()
+#+----+----+----+
+#|int1|int2|int3|
+#+----+----+----+
+#|   1|   2|   3|
+#|   4|   5|   6|
+#|   7|   8|   9|
+#+----+----+----+
 
-# Step 2: StandardScaler using PySpark
-# Initialize Spark session
-spark = SparkSession.builder.appName("StandardScalerExample").getOrCreate()
+import pyspark.sql.functions as f
+# This is equivalent to UNION ALL in SQL
+df2 = df.union(df.select(*[f.avg(c).alias(c) for c in df.columns]))
 
-# Create a DataFrame from the same sample data
-data_spark = [(Vectors.dense([1.0, 2.0]),), (Vectors.dense([3.0, 4.0]),), (Vectors.dense([5.0, 6.0]),)]
-df_spark = spark.createDataFrame(data_spark, ["features"])
 
-# Compute Spark StandardScaler statistics
-scaler = SparkStandardScaler(inputCol="features", outputCol="scaledFeatures", withMean=True, withStd=True)
-scaler_model = scaler.fit(df_spark)
+from pyspark.ml.feature import VectorAssembler, StandardScaler
+va = VectorAssembler(inputCols=["int2"], outputCol="temp_feature")
 
-# Manually extract the mean and standard deviation from Spark
-mean_spark = scaler_model.mean.toArray()
-std_spark = scaler_model.std.toArray()
-
-# Apply Spark StandardScaler
-scaled_df_spark = scaler_model.transform(df_spark)
-
-# Convert PySpark output to a NumPy array for comparison
-scaled_data_spark = np.array(scaled_df_spark.select("scaledFeatures").rdd.map(lambda x: x[0].toArray()).collect())
-
-print("\nPySpark StandardScaler output:")
-print(scaled_data_spark)
-print("PySpark Mean:", mean_spark)
-print("PySpark Std Dev:", std_spark)
-
-# Step 3: Compare both outputs
-# Compare the results of scikit-learn and PySpark
-comparison = np.allclose(scaled_data_sklearn, scaled_data_spark, atol=1e-6)
-print("\nAre the scaled outputs equal?")
-print(comparison)
-
-# Stop Spark session
-spark.stop()
+tmpdf = va.transform(df2)
+sScaler = StandardScaler(
+    withMean=True, withStd=True, inputCol="temp_feature", outputCol="scaled"
+)
+sScaler.fit(tmpdf).transform(tmpdf).show()
+#+----+----+----+------------+---------------------+
+#|int1|int2|int3|temp_feature|scaled               |
+#+----+----+----+------------+---------------------+
+#|1.0 |2.0 |3.0 |[2.0]       |[-1.2247448713915892]|
+#|4.0 |5.0 |6.0 |[5.0]       |[0.0]                |
+#|7.0 |8.0 |9.0 |[8.0]       |[1.2247448713915892] |
+#|4.0 |5.0 |6.0 |[5.0]       |[0.0]                |
+#+----+----+----+------------+---------------------+
