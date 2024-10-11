@@ -7,3 +7,8 @@ scaled_data = scaler.fit_transform(data)
 from sklearn.preprocessing import MaxAbsScaler
 scaler = MaxAbsScaler()
 scaled_data = scaler.fit_transform(data)
+
+
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+scaled_data = scaler.fit_transform(data)
