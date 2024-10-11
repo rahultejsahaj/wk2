@@ -1,13 +1,3 @@
-# Step 1: Convert the "scaledFeatures" vector back into separate columns
-# Create a list of column names that correspond to the original feature columns
-scaled_feature_cols = [f"scaled_{col}" for col in feature_cols]
-
-# Extract the individual components of the vector into separate columns
-for i, col_name in enumerate(scaled_feature_cols):
-    scaled_df = scaled_df.withColumn(col_name, F.col("scaledFeatures")[i])
-
-# Step 2: Drop the "features" and "scaledFeatures" vector columns (if not needed anymore)
-scaled_df = scaled_df.drop("features", "scaledFeatures")
-
-# Step 3: Convert the final DataFrame to Pandas and retain column names
-pandas_df = scaled_df.toPandas()
+# Replace dots in column names with underscores
+for col in df.columns:
+    df = df.withColumnRenamed(col, col.replace(".", "_"))
