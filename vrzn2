@@ -1,30 +1,13 @@
-from pyspark.ml.feature import StandardScaler
-from pyspark.ml.feature import VectorAssembler
+# Step 1: Convert the "scaledFeatures" vector back into separate columns
+# Create a list of column names that correspond to the original feature columns
+scaled_feature_cols = [f"scaled_{col}" for col in feature_cols]
 
-# VectorAssembler to combine columns into a vector column
-assembler = VectorAssembler(inputCols=["feature1", "feature2"], outputCol="features")
-df_vector = assembler.transform(df)
+# Extract the individual components of the vector into separate columns
+for i, col_name in enumerate(scaled_feature_cols):
+    scaled_df = scaled_df.withColumn(col_name, F.col("scaledFeatures")[i])
 
-# Apply StandardScaler
-scaler = StandardScaler(inputCol="features", outputCol="scaledFeatures", withMean=True, withStd=True)
-scaler_model = scaler.fit(df_vector)
-scaled_df = scaler_model.transform(df_vector)
+# Step 2: Drop the "features" and "scaledFeatures" vector columns (if not needed anymore)
+scaled_df = scaled_df.drop("features", "scaledFeatures")
 
-scaled_df.show()
-
-
-
-
-
-from pyspark.sql import functions as F
-
-# Compute median and IQR (25th and 75th percentiles)
-quantiles = df.approxQuantile(["feature1", "feature2"], [0.25, 0.5, 0.75], 0.01)
-
-# Apply Robust Scaling manually
-for col in df.columns:
-    median = quantiles[1]
-    iqr = quantiles[2] - quantiles[0]
-    df = df.withColumn(col, (df[col] - median) / iqr)
-
-df.show()
+# Step 3: Convert the final DataFrame to Pandas and retain column names
+pandas_df = scaled_df.toPandas()
