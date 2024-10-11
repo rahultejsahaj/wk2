@@ -1,3 +1,9 @@
-# Replace dots in column names with underscores
-for col in df.columns:
-    df = df.withColumnRenamed(col, col.replace(".", "_"))
+# Separate the values from the 'scaledFeatures' column into individual columns
+scaled_features = pandas_df['scaledFeatures'].apply(lambda x: list(x))
+scaled_columns = pd.DataFrame(scaled_features.tolist(), columns=feature_cols)
+
+# Drop the 'scaledFeatures' and 'features' columns from the Pandas DataFrame
+pandas_df = pandas_df.drop(columns=['scaledFeatures', 'features'])
+
+# Replace the original columns with the scaled values
+pandas_df[feature_cols] = scaled_columns
