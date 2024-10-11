@@ -1,14 +1,30 @@
-from sklearn.preprocessing import RobustScaler
-scaler = RobustScaler()
-scaled_data = scaler.fit_transform(data)
+from pyspark.ml.feature import StandardScaler
+from pyspark.ml.feature import VectorAssembler
+
+# VectorAssembler to combine columns into a vector column
+assembler = VectorAssembler(inputCols=["feature1", "feature2"], outputCol="features")
+df_vector = assembler.transform(df)
+
+# Apply StandardScaler
+scaler = StandardScaler(inputCol="features", outputCol="scaledFeatures", withMean=True, withStd=True)
+scaler_model = scaler.fit(df_vector)
+scaled_df = scaler_model.transform(df_vector)
+
+scaled_df.show()
 
 
 
-from sklearn.preprocessing import MaxAbsScaler
-scaler = MaxAbsScaler()
-scaled_data = scaler.fit_transform(data)
 
 
-from sklearn.preprocessing import MinMaxScaler
-scaler = MinMaxScaler()
-scaled_data = scaler.fit_transform(data)
+from pyspark.sql import functions as F
+
+# Compute median and IQR (25th and 75th percentiles)
+quantiles = df.approxQuantile(["feature1", "feature2"], [0.25, 0.5, 0.75], 0.01)
+
+# Apply Robust Scaling manually
+for col in df.columns:
+    median = quantiles[1]
+    iqr = quantiles[2] - quantiles[0]
+    df = df.withColumn(col, (df[col] - median) / iqr)
+
+df.show()
