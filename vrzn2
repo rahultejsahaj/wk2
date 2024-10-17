@@ -1,11 +1,8 @@
-# Specify the BigQuery table in the format 'project.dataset.table'
-table_name = "vz-it-pr-fjpv-vzdsdo-0.ds_work_tbls.condition_lis_train_gcp"
+# Get the number of rows
+num_rows = train_data.count()
 
-# Read the table into a PySpark DataFrame
-train_data = spark.read \
-    .format("bigquery") \
-    .option("table", table_name) \
-    .load()
+# Get the number of columns
+num_cols = len(train_data.columns)
 
-# Show the DataFrame to verify the results
-train_data.show()
+# Print the shape (rows, columns)
+print(f"DataFrame shape: ({num_rows}, {num_cols})")
