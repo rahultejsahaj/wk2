@@ -1,164 +1,64 @@
-def features_engineering(df: pd.DataFrame(),
-                         prod: str):
-    
-    """ Get features for regression model training
-    Args:
-        df (pd.DataFrame()): data include original 3mth and 1mth fetures and target
-        prod (str): True is for prod data and False is non prod data
-    
-    return:
-         final_data_df[key_col] (pd.DataFrame()): data including key columns
-         final_data_df[target] (pd.DataFrame()): target data from future 3 months
-         final_data_df[feature_cols] (pd.DataFrame()): data including features from past 3mth and 1 mth
-    """
-    
-    data_df = df.copy()
-    
-    data_df.columns = [x.lower() for x in data_df.columns]
-    
-    zip5_data = data_df.groupby(by='zip5_cd').agg({'pq_cleu_ga_1mth': 'sum', 'pq_nl_ga_1mth': 'sum', 'pq_base_ga_1mth':'sum','pq_lis_1mth': 'sum', 'qes_score':'sum'}).reset_index()
-    zip5_data.columns = ['zip5_cd','zip5_cleu_sum', 'zip5_nl_ga_sum', 'zip5_base_ga_sum', 'zip5_lis_sum', 'zip5_qes_score_sum']
-    
-    data_df['zip4_cd'] =  data_df['zip4_cd'].fillna('none')
-    data_df['zip54_cd'] = data_df['zip5_cd'] + str('_') + data_df['zip4_cd']
-    
-    zip54_data = data_df.groupby(by=['zip54_cd']).agg({'pq_cleu_ga_1mth': 'sum', 'pq_nl_ga_1mth': 'sum', 'pq_base_ga_1mth':'sum','pq_lis_1mth': 'sum', 'qes_score': 'sum'}).reset_index()
-    zip54_data.columns = ['zip54_cd','zip54_cleu_sum', 'zip54_nl_ga_sum', 'zip54_base_ga_sum', 'zip54_lis_sum', 'zip54_qes_score_sum']
-    zip54_data['zip5_cd'] = zip54_data['zip54_cd'].str[0:5]
-    zip54_data['zip4_cd'] = zip54_data['zip54_cd'].str[6::]
-    
-    data_df = data_df.merge(zip5_data, on='zip5_cd', how='left').merge(zip54_data, on=['zip5_cd', 'zip4_cd','zip54_cd'], how='left')
-    
-    
-     # Model' Target
-    if not prod:
-        data_df['base_ga_future_3mth'] = data_df['cleu_ga_3mth']
-        
-        cols = ['rpt_mth', 'duns_loc_num', 'zip5_cd','zip4_cd','zip54_cd','emp_tot_num', 'lat_num', 'long_num','naics_cd1', 'wireless_bill_tot_amt', 'mob_emp_tot_loc_num',\
-        'mob_broadband_bill_tot_amt', 'pq_cleu_ga_1mth', 'pq_nl_ga_1mth', 'pq_base_ga_1mth', 'pq_phone_ga_1mth','pq_tablet_ga_1mth',\
-        'pq_mbb_ga_1mth', 'pq_lis_1mth', 'pq_tablet_lis_1mth','pq_mbb_lis_1mth', 'pq_smartphone_lis_1mth','base_ga_future_3mth','base_ga_previous_1mth',\
-        'lis_target_end_mth', 'base_ga_3mth', 'nl_ga_3mth', 'zip5_cleu_sum', 'zip5_nl_ga_sum','zip5_base_ga_sum', 'zip5_lis_sum','zip5_qes_score_sum','zip54_cleu_sum',\
-        'zip54_nl_ga_sum','zip54_base_ga_sum', 'zip54_lis_sum', 'zip54_qes_score_sum', 'pq_cleu_ga_3mth', 'pq_nl_ga_3mth', \
-        'pq_base_ga_3mth', 'pq_phone_ga_3mth', 'pq_tablet_ga_3mth', 'pq_mbb_ga_3mth','pq_lis_3mth', 'pq_tablet_lis_3mth', 'pq_mbb_lis_3mth',\
-        'pq_smartphone_lis_3mth', 'chgd_wireless_provider_index', 'city_nm', 'base_yr_emp', 'base_yr_sls','bus_nm', 'ceo_title', 'pct_growth_emp',\
-        'pct_growth_sls','population_cd', 'marketable_ind', 'residence_cd', 'segmt_cd', 'sls_cd', 'sls_tot','subsidiary_cd', 'st_cnty_cd', 'territory_cd', \
-        'trend_yr_emp','trend_yr_sls', 'wireless_data_apps_index','wireless_push_to_talk_index', 'wireless_voice_apps_index','business_age','ratio_cleu_subs_p_1mth',\
-       'ratio_cleu_subs_p_3mth', 'total_employee_count', 'annual_revenue', 'vz_connect', 'intent_mobility_10', 'intent_wls_bi_10','intent_networks_10',\
-        'wireless_12_month_spend','wireline_12_month_spend', 'connect_12_month_spend', 'fg_customer_loc','fg_pro_10', 'ltebi_lq_10', 'exist_ltebi_customer_10', 'ltebi_wfh_10',\
-        'wls_promo_10', 'ports_lines', 'linkedin_jobs_posted','linkedin_hiring_10', 'wls_wallet_share', 'wln_wallet_share',
-       'fios_loc', 'covered_prc', 'nfs_voice_perc','nfs_data_perc', 'future_5g_availability_10', 'zip5_duns_cnt', 'zip5_vz_cust_cnt',
-       'zip5_prospect_cnt','zip54_duns_cnt','zip54_vz_cust_cnt','zip54_prospect_cnt', 'wln_rel', 'con_rel', 'has_vz_rel', 'wln_ser_loc','vz_hq_rel', 'jb_lis_1mth','qes_score']
-    else:
-        cols = ['rpt_mth', 'duns_loc_num', 'zip5_cd', 'zip4_cd','zip54_cd','emp_tot_num', 'lat_num', 'long_num','naics_cd1', 'wireless_bill_tot_amt', 'mob_emp_tot_loc_num',\
-        'mob_broadband_bill_tot_amt', 'pq_cleu_ga_1mth', 'pq_nl_ga_1mth', 'pq_base_ga_1mth', 'pq_phone_ga_1mth','pq_tablet_ga_1mth',\
-        'pq_mbb_ga_1mth', 'pq_lis_1mth', 'pq_tablet_lis_1mth','pq_mbb_lis_1mth', 'pq_smartphone_lis_1mth','base_ga_previous_1mth',\
-        'zip5_cleu_sum', 'zip5_nl_ga_sum','zip5_base_ga_sum', 'zip5_lis_sum', 'zip5_qes_score_sum','zip54_cleu_sum', 'zip54_nl_ga_sum','zip54_base_ga_sum', 'zip54_lis_sum', \
-        'zip54_qes_score_sum','pq_cleu_ga_3mth', 'pq_nl_ga_3mth', \
-        'pq_base_ga_3mth', 'pq_phone_ga_3mth', 'pq_tablet_ga_3mth', 'pq_mbb_ga_3mth','pq_lis_3mth', 'pq_tablet_lis_3mth', 'pq_mbb_lis_3mth',\
-        'pq_smartphone_lis_3mth', 'chgd_wireless_provider_index', 'city_nm', 'base_yr_emp', 'base_yr_sls','bus_nm', 'ceo_title', 'pct_growth_emp',\
-        'pct_growth_sls','population_cd', 'marketable_ind','residence_cd', 'segmt_cd', 'sls_cd', 'sls_tot','subsidiary_cd', 'st_cnty_cd', 'territory_cd', \
-        'trend_yr_emp','trend_yr_sls', 'wireless_data_apps_index','wireless_push_to_talk_index', 'wireless_voice_apps_index','business_age','ratio_cleu_subs_p_1mth',\
-       'ratio_cleu_subs_p_3mth', 'total_employee_count', 'annual_revenue', 'vz_connect','intent_mobility_10', 'intent_wls_bi_10','intent_networks_10',\
-        'wireless_12_month_spend','wireline_12_month_spend', 'connect_12_month_spend', 'fg_customer_loc','fg_pro_10', 'ltebi_lq_10', 'exist_ltebi_customer_10',\
-        'ltebi_wfh_10','wls_promo_10', 'ports_lines', 'linkedin_jobs_posted','linkedin_hiring_10', 'wls_wallet_share', 'wln_wallet_share','fios_loc', 'covered_prc',\
-        'nfs_voice_perc','nfs_data_perc', 'future_5g_availability_10','zip5_duns_cnt', 'zip5_vz_cust_cnt','zip5_prospect_cnt', 'zip54_duns_cnt','zip54_vz_cust_cnt',\
-        'zip54_prospect_cnt','wln_rel', 'con_rel', 'has_vz_rel', 'wln_ser_loc','vz_hq_rel','jb_lis_1mth','qes_score']
-        
-    data_df['base_ga_previous_1mth'] = data_df['pq_phone_ga_1mth'] + data_df['pq_tablet_ga_1mth'] + data_df['pq_mbb_ga_1mth']
-    
-    
-    data_df['pq_lis_1mth'] = data_df['pq_lis_1mth'].fillna(0)
-    data_df['pq_cleu_ga_1mth'] = data_df['pq_cleu_ga_1mth'].fillna(0)
-    
-    index_zero_subs = data_df[data_df['pq_lis_1mth']==0].index
-    data_df.loc[index_zero_subs, 'ratio_cleu_subs_p_1mth'] = 0
-    
-    data_df.loc[~data_df.index.isin(index_zero_subs), 'ratio_cleu_subs_p_1mth'] = data_df.loc[~data_df.index.isin(index_zero_subs), 'pq_cleu_ga_1mth'] / \
-                                                                                       data_df.loc[~data_df.index.isin(index_zero_subs), 'pq_lis_1mth']
-    
-    data_df['pq_lis_3mth'] = data_df['pq_lis_3mth'].fillna(0)
-    data_df['pq_cleu_ga_3mth'] = data_df['pq_cleu_ga_3mth'].fillna(0)
-    
-    index_zero_subs = data_df[data_df['pq_lis_3mth']==0].index
-    data_df.loc[index_zero_subs, 'ratio_cleu_subs_p_3mth'] = 0
-    
-    data_df.loc[~data_df.index.isin(index_zero_subs), 'ratio_cleu_subs_p_3mth'] = data_df.loc[~data_df.index.isin(index_zero_subs), 'pq_cleu_ga_3mth'] / \
-                                                                                       data_df.loc[~data_df.index.isin(index_zero_subs), 'pq_lis_3mth']
-    
-    
-    final_data_df = data_df[cols].copy()
+# Create base_ga_previous_1mth
+    data_df = data_df.withColumn('base_ga_previous_1mth', 
+                                   F.col('pq_phone_ga_1mth') + 
+                                   F.col('pq_tablet_ga_1mth') + 
+                                   F.col('pq_mbb_ga_1mth'))
 
-    final_data_df['naics_cd1'] = final_data_df['naics_cd1'].fillna('none')
+    # Fill NA values
+    data_df = data_df.fillna({
+        'pq_lis_1mth': 0,
+        'pq_cleu_ga_1mth': 0,
+        'pq_lis_3mth': 0,
+        'pq_cleu_ga_3mth': 0
+    })
 
-    final_data_df = final_data_df.fillna(0)
+    # Calculate ratio_cleu_subs_p_1mth
+    data_df = data_df.withColumn('ratio_cleu_subs_p_1mth', 
+                                   F.when(F.col('pq_lis_1mth') == 0, 0)
+                                   .otherwise(F.col('pq_cleu_ga_1mth') / F.col('pq_lis_1mth')))
+    
+    # Calculate ratio_cleu_subs_p_3mth
+    data_df = data_df.withColumn('ratio_cleu_subs_p_3mth', 
+                                   F.when(F.col('pq_lis_3mth') == 0, 0)
+                                   .otherwise(F.col('pq_cleu_ga_3mth') / F.col('pq_lis_3mth')))
+    
+    # Select columns
+    final_data_df = data_df.select(*cols)
 
-    final_data_df['zip5_cd'] = final_data_df['zip5_cd'].str.strip().fillna('none')
+    # Fill NA values
+    final_data_df = final_data_df.fillna({
+        'naics_cd1': 'none',
+        'zip5_cd': 'none',
+        'territory_cd': 'none',
+        'st_cnty_cd': 'none',
+        'subsidiary_cd': 'none',
+        'sls_cd': 'none',
+        'segmt_cd': 'none',
+        'residence_cd': 'none',
+        'population_cd': 'none',
+        'ceo_title': 'none',
+        'bus_nm': 'none',
+        'city_nm': 'none',
+        'marketable_ind': 'none',
+        'vz_connect': 'none',
+        'business_age': 0
+    })
+    
+    # Strip whitespace and lower case
+    for col in ['zip5_cd', 'naics_cd1', 'ceo_title', 'bus_nm', 'city_nm', 'marketable_ind', 'vz_connect']:
+        final_data_df = final_data_df.withColumn(col, F.lower(F.trim(F.col(col))))
+    
+    final_data_df = final_data_df.withColumn('business_age', F.col('business_age').cast('float'))
 
-    final_data_df['naics_cd1'] = final_data_df['naics_cd1'].str.strip()
-    
-    final_data_df['business_age'] = final_data_df['business_age'].astype(float)
-    
-    final_data_df['territory_cd'] = final_data_df['territory_cd'].astype(str)
-    
-    final_data_df['territory_cd'] = final_data_df['territory_cd'].fillna('none')
-    
-    final_data_df['st_cnty_cd'] = final_data_df['st_cnty_cd'].astype(str)
-    
-    final_data_df['st_cnty_cd'] = final_data_df['st_cnty_cd'].fillna('none')
-    
-    final_data_df['subsidiary_cd'] = final_data_df['subsidiary_cd'].astype(str)
-    
-    final_data_df['subsidiary_cd'] = final_data_df['subsidiary_cd'].fillna('none')
-    
-    final_data_df['sls_cd'] = final_data_df['sls_cd'].astype(str)
-    
-    final_data_df['sls_cd'] = final_data_df['sls_cd'].fillna('none')
-    
-    final_data_df['segmt_cd'] = final_data_df['segmt_cd'].fillna('none')
-    
-    final_data_df['residence_cd'] = final_data_df['residence_cd'].fillna('none')
-    
-    final_data_df['population_cd'] = final_data_df['population_cd'].astype(str)
-    
-    final_data_df['population_cd'] = final_data_df['population_cd'].fillna('none')
-    
-    final_data_df['ceo_title'] = final_data_df['ceo_title'].fillna('none')
-    
-    final_data_df['ceo_title'] = final_data_df['ceo_title'].str.lower()
-    
-    final_data_df['bus_nm'] = final_data_df['bus_nm'].fillna('none')
-    
-    final_data_df['bus_nm'] = final_data_df['bus_nm'].str.lower()
-    
-    final_data_df['city_nm'] = final_data_df['city_nm'].fillna('none')
-    
-    final_data_df['city_nm'] = final_data_df['city_nm'].str.lower()
-    
-    final_data_df['marketable_ind'] = final_data_df['marketable_ind'].fillna('none')
-    
-    final_data_df['marketable_ind'] = final_data_df['marketable_ind'].str.lower()
-    
-    final_data_df['vz_connect'] = final_data_df['vz_connect'].fillna('none')
-    
-    final_data_df['vz_connect'] = final_data_df['vz_connect'].str.lower()
-
+    # Define key columns, target, and feature columns based on prod flag
     if prod:
-        key_col = ['rpt_mth','duns_loc_num','zip5_cd']
-        feature_cols= [x for x in final_data_df.columns if x not in key_col]
+        key_col = ['rpt_mth', 'duns_loc_num', 'zip5_cd']
+        feature_cols = [x for x in final_data_df.columns if x not in key_col]
+        return final_data_df.select(*key_col), final_data_df.select(*feature_cols + ['zip5_cd', 'zip4_cd'])
     else:
-        key_col = ['rpt_mth','duns_loc_num','zip5_cd', 'zip4_cd', 'base_ga_future_3mth', 'base_ga_3mth', 'nl_ga_3mth'] 
+        key_col = ['rpt_mth', 'duns_loc_num', 'zip5_cd', 'zip4_cd', 'base_ga_future_3mth', 'base_ga_3mth', 'nl_ga_3mth']
         target = ['lis_target_end_mth']
-        feature_cols= [x for x in final_data_df.columns if x not in key_col + target]
-    
-    final_data_df['city_nm'] = final_data_df['city_nm'].fillna('none')
-    final_data_df['bus_nm'] = final_data_df['bus_nm'].fillna('none')
-    final_data_df['ceo_title'] = final_data_df['ceo_title'].fillna('none')
-    final_data_df['business_age'] = final_data_df['business_age'].fillna(0)
-    final_data_df['naics_cd1'] = final_data_df['naics_cd1'].fillna('none')
-    final_data_df['vz_connect'] = final_data_df['vz_connect'].fillna('none')
-    final_data_df['marketable_ind'] = final_data_df['marketable_ind'].fillna('none')
-    
-    if prod:
-        return final_data_df[key_col], final_data_df[feature_cols+['zip5_cd', 'zip4_cd']]
-    else:
-        return final_data_df[key_col + ['lis_target_end_mth', 'naics_cd1','jb_lis_1mth']], final_data_df[target], final_data_df[feature_cols+['zip5_cd', 'zip4_cd']]
+        feature_cols = [x for x in final_data_df.columns if x not in key_col + target]
+        return (final_data_df.select(*key_col, 'lis_target_end_mth', 'naics_cd1', 'jb_lis_1mth'), 
+                final_data_df.select(*target), 
+                final_data_df.select(*feature_cols + ['zip5_cd', 'zip4_cd']))
