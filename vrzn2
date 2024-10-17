@@ -1,8 +1,3 @@
-Here's the conversion of the given function into a **PySpark** function. The approach focuses on the `PySpark DataFrame` API, handling groupings, joins, and transformations using `pyspark.sql` functions.
-
-### PySpark Version of the `features_engineering` Function:
-
-```python
 from pyspark.sql import functions as F
 from pyspark.sql import DataFrame
 from pyspark.sql.window import Window
@@ -85,4 +80,23 @@ def features_engineering_spark(df: DataFrame, prod: bool):
                 'pq_mbb_ga_3mth', 'pq_lis_3mth', 'pq_tablet_lis_3mth', 'pq_mbb_lis_3mth', 'pq_smartphone_lis_3mth', 
                 'chgd_wireless_provider_index', 'city_nm', 'base_yr_emp', 'base_yr_sls', 'bus_nm', 'ceo_title', 'pct_growth_emp', 
                 'pct_growth_sls', 'population_cd', 'marketable_ind', 'residence_cd', 'segmt_cd', 'sls_cd', 'sls_tot', 'subsidiary_cd', 
-               
+                'st_cnty_cd', 'territory_cd', 'trend_yr_emp', 'trend_yr_sls', 'wireless_data_apps_index', 'wireless_push_to_talk_index', 
+                'wireless_voice_apps_index', 'business_age', 'ratio_cleu_subs_p_1mth', 'ratio_cleu_subs_p_3mth', 'total_employee_count', 
+                'annual_revenue', 'vz_connect', 'intent_mobility_10', 'intent_wls_bi_10', 'intent_networks_10', 'wireless_12_month_spend', 
+                'wireline_12_month_spend', 'connect_12_month_spend', 'fg_customer_loc', 'fg_pro_10', 'ltebi_lq_10', 'exist_ltebi_customer_10', 
+                'ltebi_wfh_10', 'wls_promo_10', 'ports_lines', 'linkedin_jobs_posted', 'linkedin_hiring_10', 'wls_wallet_share', 
+                'wln_wallet_share', 'fios_loc', 'covered_prc', 'nfs_voice_perc', 'nfs_data_perc', 'future_5g_availability_10', 
+                'zip5_duns_cnt', 'zip5_vz_cust_cnt', 'zip5_prospect_cnt', 'zip54_duns_cnt', 'zip54_vz_cust_cnt', 'zip54_prospect_cnt', 
+                'wln_rel', 'con_rel', 'has_vz_rel', 'wln_ser_loc', 'vz_hq_rel', 'jb_lis_1mth', 'qes_score']
+    
+    # Select features
+    features_df = data_df.select(cols)
+    
+    if not prod:
+        key_cols = ['rpt_mth', 'duns_loc_num', 'zip5_cd', 'zip4_cd', 'zip54_cd']
+        key_df = data_df.select(key_cols)
+        
+        target_df = data_df.select('base_ga_future_3mth')
+        return key_df, target_df, features_df
+    else:
+        return features_df
