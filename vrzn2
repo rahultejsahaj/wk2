@@ -1,7 +1,11 @@
-query = """
+# Specify the BigQuery table in the format 'project.dataset.table'
+table_name = "vz-it-pr-fjpv-vzdsdo-0.ds_work_tbls.condition_lis_train_gcp"
 
-select * from vz-it-pr-fjpv-vzdsdo-0.ds_work_tbls.condition_lis_train_gcp
+# Read the table into a PySpark DataFrame
+train_data = spark.read \
+    .format("bigquery") \
+    .option("table", table_name) \
+    .load()
 
-"""
-query_job = client.query(query)
-train_data = query_job.result().to_dataframe()
+# Show the DataFrame to verify the results
+train_data.show()
