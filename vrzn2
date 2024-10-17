@@ -1,4 +1,13 @@
+# Assuming get_non_zero_lines function is already defined
+
+# Filter non-zero lines for training and validation datasets
 train_nonzero_lines = get_non_zero_lines(df=train_data)
 val_nonzero_lines = get_non_zero_lines(df=val_data)
 
-train_nonzero_lines.shape, val_nonzero_lines.shape
+# Get the shapes of the DataFrames
+train_shape = (train_nonzero_lines.count(), len(train_nonzero_lines.columns))
+val_shape = (val_nonzero_lines.count(), len(val_nonzero_lines.columns))
+
+# Display the shapes
+print("Training Non-Zero Lines Shape:", train_shape)
+print("Validation Non-Zero Lines Shape:", val_shape)
