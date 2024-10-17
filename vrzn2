@@ -1,13 +1,16 @@
-# Assuming get_non_zero_lines function is already defined
+train_data_key, train_data_target, train_data_feature = features_engineering(df=train_nonzero_lines,
+                                                                             prod=False)
+val_data_key, val_data_target, val_data_feature = features_engineering(df=val_nonzero_lines,
+                                                                      prod=False)
 
-# Filter non-zero lines for training and validation datasets
-train_nonzero_lines = get_non_zero_lines(df=train_data)
-val_nonzero_lines = get_non_zero_lines(df=val_data)
+full_val_data_key, full_val_data_target, full_val_data_feature = features_engineering(df=val_data,
+                                                                                      prod=False)
 
-# Get the shapes of the DataFrames
-train_shape = (train_nonzero_lines.count(), len(train_nonzero_lines.columns))
-val_shape = (val_nonzero_lines.count(), len(val_nonzero_lines.columns))
+ full_val_data_target.shape, val_data_target.shape, train_data_target.shape
 
-# Display the shapes
-print("Training Non-Zero Lines Shape:", train_shape)
-print("Validation Non-Zero Lines Shape:", val_shape)
+
+check_df = pd.concat([train_data_key, train_data_feature, train_data_target], axis=1)
+cols = ['duns_loc_num', 'total_employee_count', 'pq_lis_1mth','emp_tot_num']
+check_df_p = check_df[cols]
+
+
