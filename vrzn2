@@ -1,11 +1,22 @@
-def get_non_zero_lines(df: pd.DataFrame()):
+from pyspark.sql import DataFrame
+from pyspark.sql.functions import col, when
+
+def get_non_zero_lines(df: DataFrame) -> DataFrame:
     """Get duns data with nonzero lines
     Args:
-        df (pd.DataFrame()): input dataframe
+        df (DataFrame): input dataframe
         
     Return:
-        df_nonzero_lines (pd.DataFrame())
+        DataFrame: filtered dataframe with nonzero lines
     """
-    df_valid_lines = df[~df['lis_target_end_mth'].isnull()].reset_index(drop=True)
-    df_nonzero_lines = df_valid_lines[df_valid_lines['lis_target_end_mth']!=0].reset_index(drop=True)
+    # Filter out rows where 'lis_target_end_mth' is null
+    df_valid_lines = df.filter(col('lis_target_end_mth').isNotNull())
+    
+    # Filter out rows where 'lis_target_end_mth' is zero
+    df_nonzero_lines = df_valid_lines.filter(col('lis_target_end_mth') != 0)
+    
     return df_nonzero_lines
+
+# Example usage
+# non_zero_lines_df = get_non_zero_lines(train_data)
+# non_zero_lines_df.show()
