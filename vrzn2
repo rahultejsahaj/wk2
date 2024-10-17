@@ -1,64 +1,12 @@
-# Create base_ga_previous_1mth
-    data_df = data_df.withColumn('base_ga_previous_1mth', 
-                                   F.col('pq_phone_ga_1mth') + 
-                                   F.col('pq_tablet_ga_1mth') + 
-                                   F.col('pq_mbb_ga_1mth'))
+# Add an index column to each DataFrame
+df1 = df1.withColumn("index", F.monotonically_increasing_id())
+df2 = df2.withColumn("index", F.monotonically_increasing_id())
+df3 = df3.withColumn("index", F.monotonically_increasing_id())
 
-    # Fill NA values
-    data_df = data_df.fillna({
-        'pq_lis_1mth': 0,
-        'pq_cleu_ga_1mth': 0,
-        'pq_lis_3mth': 0,
-        'pq_cleu_ga_3mth': 0
-    })
+# Join the DataFrames on the index column
+result_df = df1.join(df2, on="index", how="outer") \
+               .join(df3, on="index", how="outer") \
+               .drop("index")  # Drop the index column if not needed
 
-    # Calculate ratio_cleu_subs_p_1mth
-    data_df = data_df.withColumn('ratio_cleu_subs_p_1mth', 
-                                   F.when(F.col('pq_lis_1mth') == 0, 0)
-                                   .otherwise(F.col('pq_cleu_ga_1mth') / F.col('pq_lis_1mth')))
-    
-    # Calculate ratio_cleu_subs_p_3mth
-    data_df = data_df.withColumn('ratio_cleu_subs_p_3mth', 
-                                   F.when(F.col('pq_lis_3mth') == 0, 0)
-                                   .otherwise(F.col('pq_cleu_ga_3mth') / F.col('pq_lis_3mth')))
-    
-    # Select columns
-    final_data_df = data_df.select(*cols)
-
-    # Fill NA values
-    final_data_df = final_data_df.fillna({
-        'naics_cd1': 'none',
-        'zip5_cd': 'none',
-        'territory_cd': 'none',
-        'st_cnty_cd': 'none',
-        'subsidiary_cd': 'none',
-        'sls_cd': 'none',
-        'segmt_cd': 'none',
-        'residence_cd': 'none',
-        'population_cd': 'none',
-        'ceo_title': 'none',
-        'bus_nm': 'none',
-        'city_nm': 'none',
-        'marketable_ind': 'none',
-        'vz_connect': 'none',
-        'business_age': 0
-    })
-    
-    # Strip whitespace and lower case
-    for col in ['zip5_cd', 'naics_cd1', 'ceo_title', 'bus_nm', 'city_nm', 'marketable_ind', 'vz_connect']:
-        final_data_df = final_data_df.withColumn(col, F.lower(F.trim(F.col(col))))
-    
-    final_data_df = final_data_df.withColumn('business_age', F.col('business_age').cast('float'))
-
-    # Define key columns, target, and feature columns based on prod flag
-    if prod:
-        key_col = ['rpt_mth', 'duns_loc_num', 'zip5_cd']
-        feature_cols = [x for x in final_data_df.columns if x not in key_col]
-        return final_data_df.select(*key_col), final_data_df.select(*feature_cols + ['zip5_cd', 'zip4_cd'])
-    else:
-        key_col = ['rpt_mth', 'duns_loc_num', 'zip5_cd', 'zip4_cd', 'base_ga_future_3mth', 'base_ga_3mth', 'nl_ga_3mth']
-        target = ['lis_target_end_mth']
-        feature_cols = [x for x in final_data_df.columns if x not in key_col + target]
-        return (final_data_df.select(*key_col, 'lis_target_end_mth', 'naics_cd1', 'jb_lis_1mth'), 
-                final_data_df.select(*target), 
-                final_data_df.select(*feature_cols + ['zip5_cd', 'zip4_cd']))
+# Show the result
+result_df.show()
