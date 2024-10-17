@@ -1,16 +1,225 @@
-train_data_key, train_data_target, train_data_feature = features_engineering(df=train_nonzero_lines,
-                                                                             prod=False)
-val_data_key, val_data_target, val_data_feature = features_engineering(df=val_nonzero_lines,
-                                                                      prod=False)
-
-full_val_data_key, full_val_data_target, full_val_data_feature = features_engineering(df=val_data,
-                                                                                      prod=False)
-
- full_val_data_target.shape, val_data_target.shape, train_data_target.shape
+from catboost import CatBoostRegressor
+from sklearn.metrics import mean_squared_error as mse
+# from sklearn.preprocessing import StandardScaler
 
 
-check_df = pd.concat([train_data_key, train_data_feature, train_data_target], axis=1)
-cols = ['duns_loc_num', 'total_employee_count', 'pq_lis_1mth','emp_tot_num']
-check_df_p = check_df[cols]
+all_features_cols = ['emp_tot_num', 'naics_cd1','wireless_bill_tot_amt', 'mob_emp_tot_loc_num','mob_broadband_bill_tot_amt', 'pq_cleu_ga_1mth',\
+               'pq_nl_ga_1mth', 'pq_base_ga_1mth', 'pq_phone_ga_1mth', 'pq_tablet_ga_1mth', 'pq_mbb_ga_1mth', 'pq_lis_1mth','pq_tablet_lis_1mth', 'pq_mbb_lis_1mth',\
+               'pq_smartphone_lis_1mth', 'base_ga_previous_1mth', 'zip5_cleu_sum', 'zip5_nl_ga_sum','zip5_base_ga_sum', 'zip5_lis_sum', 'zip5_cd','zip4_cd', 'zip54_cleu_sum', \
+                'zip54_nl_ga_sum','zip54_base_ga_sum', 'zip54_lis_sum',  'pq_cleu_ga_3mth', 'pq_nl_ga_3mth', \
+               'pq_base_ga_3mth', 'pq_phone_ga_3mth', 'pq_tablet_ga_3mth', 'pq_mbb_ga_3mth','pq_lis_3mth', 'pq_tablet_lis_3mth', 'pq_mbb_lis_3mth',\
+              'pq_smartphone_lis_3mth', 'chgd_wireless_provider_index', 'city_nm', 'base_yr_emp', 'base_yr_sls','bus_nm', 'ceo_title', 'pct_growth_emp',\
+              'pct_growth_sls','population_cd', 'residence_cd', 'segmt_cd', 'sls_cd', 'sls_tot','subsidiary_cd', 'st_cnty_cd', 'territory_cd', \
+              'trend_yr_emp','trend_yr_sls', 'wireless_data_apps_index','wireless_push_to_talk_index', 'wireless_voice_apps_index','business_age','ratio_cleu_subs_p_1mth',\
+             'ratio_cleu_subs_p_3mth','total_employee_count', 'annual_revenue', 'vz_connect', 'intent_mobility_10', 'intent_wls_bi_10','intent_networks_10',\
+             'wireless_12_month_spend','wireline_12_month_spend', 'connect_12_month_spend', 'fg_customer_loc','fg_pro_10', 'ltebi_lq_10', 'exist_ltebi_customer_10', 'ltebi_wfh_10',\
+             'wls_promo_10', 'ports_lines', 'linkedin_jobs_posted','linkedin_hiring_10', 'wls_wallet_share', 'wln_wallet_share','fios_loc', 'covered_prc', 'nfs_voice_perc','nfs_data_perc',\
+             'future_5g_availability_10', 'zip5_duns_cnt', 'zip5_vz_cust_cnt','zip5_prospect_cnt','zip54_duns_cnt', 'zip54_vz_cust_cnt','zip54_prospect_cnt', 'wln_rel', \
+             'con_rel', 'has_vz_rel', 'wln_ser_loc','vz_hq_rel','zip5_qes_score_sum', 'zip54_qes_score_sum', 'qes_score']
+
+num_f = ['emp_tot_num', 'wireless_bill_tot_amt', 'mob_emp_tot_loc_num','mob_broadband_bill_tot_amt','pq_cleu_ga_1mth',\
+        'pq_nl_ga_1mth', 'pq_base_ga_1mth', 'pq_phone_ga_1mth', 'pq_tablet_ga_1mth', 'pq_mbb_ga_1mth', 'pq_lis_1mth','pq_tablet_lis_1mth', 'pq_mbb_lis_1mth',\
+        'pq_smartphone_lis_1mth', 'base_ga_previous_1mth','zip5_cleu_sum', 'zip5_nl_ga_sum','zip5_base_ga_sum', 'zip5_lis_sum', 'zip54_cleu_sum', 'zip54_nl_ga_sum',\
+         'zip54_base_ga_sum', 'zip54_lis_sum', 'pq_cleu_ga_3mth',
+       'pq_nl_ga_3mth', 'pq_base_ga_3mth', 'pq_phone_ga_3mth', 'pq_tablet_ga_3mth', 'pq_mbb_ga_3mth', 'pq_lis_3mth','pq_tablet_lis_3mth', 'pq_mbb_lis_3mth', \
+        'pq_smartphone_lis_3mth', 'chgd_wireless_provider_index', 'base_yr_emp', 'base_yr_sls','pct_growth_emp', 'pct_growth_sls', 'sls_tot', 'trend_yr_emp',
+       'trend_yr_sls', 'wireless_data_apps_index','wireless_push_to_talk_index', 'wireless_voice_apps_index','business_age','ratio_cleu_subs_p_1mth',\
+        'ratio_cleu_subs_p_3mth', 'total_employee_count', 'annual_revenue', 'intent_mobility_10', 'intent_wls_bi_10','intent_networks_10',\
+        'wireless_12_month_spend','wireline_12_month_spend', 'connect_12_month_spend', 'fg_customer_loc','fg_pro_10', 'ltebi_lq_10', 'exist_ltebi_customer_10', 'ltebi_wfh_10',\
+        'wls_promo_10', 'ports_lines', 'linkedin_jobs_posted','linkedin_hiring_10', 'wls_wallet_share', 'wln_wallet_share','fios_loc', 'covered_prc', 'nfs_voice_perc','nfs_data_perc', \
+         'future_5g_availability_10','zip5_duns_cnt', 'zip5_vz_cust_cnt','zip5_prospect_cnt', 'zip54_duns_cnt', 'zip54_vz_cust_cnt','zip54_prospect_cnt', \
+         'wln_rel', 'con_rel', 'has_vz_rel', 'wln_ser_loc','vz_hq_rel','zip5_qes_score_sum', 'zip54_qes_score_sum', 'qes_score']
+
+cat_features = ['naics_cd1','zip5_cd', 'zip4_cd','zip54_cd', 'city_nm', 'ceo_title', 'population_cd', 'residence_cd', 'segmt_cd', 'sls_cd', 'duns_type', 'subsidiary_cd', 'st_cnty_cd', 'territory_cd', 'marketable_ind', 'vz_connect']
 
 
+
+
+def get_feature_scaler(df: pd.DataFrame(),
+                       all_features_cols: List,
+                       num_f: List,
+                       cat_features: List):
+    
+    df_scaler = df[all_features_cols].copy()
+    
+
+    dff = sqlContext.createDataFrame(df[num_f])
+
+    # VectorAssembler to combine columns into a vector column
+#     feature_cols = [col for col in dff.columns]
+    assembler = VectorAssembler(inputCols=num_f, outputCol="features")
+    df_vector = assembler.transform(dff)
+
+    # Apply StandardScaler
+    scaler = StandardScaler(inputCol="features", outputCol="scaledFeatures", withMean=True, withStd=True)
+    scaler_model = scaler.fit(df_vector)
+    scaled_df1 = scaler_model.transform(df_vector)
+
+    scaler_df2 = scaled_df1.toPandas()
+
+    # Separate the values from the 'scaledFeatures' column into individual columns
+    scaled_features = scaler_df2['scaledFeatures'].apply(lambda x: list(x))
+    scaled_columns = pd.DataFrame(scaled_features.tolist(), columns=num_f)
+
+    # Drop the 'scaledFeatures' and 'features' columns from the Pandas DataFrame
+    scaler_df = scaler_df2.drop(columns=['scaledFeatures', 'features'])
+
+    # Replace the original columns with the scaled values
+    scaler_df[num_f] = scaled_columns  
+    
+    # scaled_df.show()
+    
+
+#     scaler_df = pd.DataFrame(scaler.fit_transform(df[num_f]))
+#     scaler_df.columns = num_f
+    scaler_df = scaler_df.reset_index(drop=True)
+    
+    df_s = df.reset_index(drop=True)
+    scaler_df_final = pd.concat([scaler_df, df_s[cat_features]], axis=1)
+    
+    return scaler_df_final, scaler_df
+
+def get_bin_data(df,
+                 bins,
+                 pred_metrics,
+                 actual_metrics):
+    dfc = df.copy()
+    dfc['bins'] = pd.qcut(dfc[pred_metrics].rank(method='first'),bins,labels = False)
+    duns_cnt = dfc['bins'].value_counts().reset_index()
+    duns_cnt.columns = ['bins', 'duns_cnt']
+    duns_bins_means = dfc.groupby(by='bins').agg({pred_metrics:'mean', actual_metrics:'mean'})
+    duns_bins_means = duns_bins_means.merge(duns_cnt, on='bins', how='left')
+    duns_bins_means['bins'] = duns_bins_means['bins'].astype(str)
+    
+    return duns_bins_means
+
+
+
+scaler_train, aa = get_feature_scaler(df=train_data_feature,
+                                  all_features_cols=all_features_cols,
+                                  num_f=num_f,
+                                  cat_features=cat_features
+                                  )
+
+scaler_val, bb = get_feature_scaler(df=val_data_feature,
+                                all_features_cols=all_features_cols,
+                                num_f=num_f,
+                                cat_features=cat_features
+                                )
+
+full_scaler_val, cc = get_feature_scaler(df=full_val_data_feature,
+                                all_features_cols=all_features_cols,
+                                num_f=num_f,
+                                cat_features=cat_features
+                                )
+
+catboost_trian = CatBoostRegressor(n_estimators=2,
+                                  loss_function='RMSE',
+                                  learning_rate=0.02,
+                                  depth=8, 
+                                  task_type='CPU',
+                                  random_state=1,
+                                  verbose=False)
+
+t0 = time.time()
+
+catboost_trian.fit(scaler_train, 
+                   train_data_target,
+                   cat_features=cat_features)
+
+preds_val = catboost_trian.predict(scaler_val)
+
+rmse_val_s = np.sqrt(mse(val_data_target.values, preds_val))
+
+print(f"total pred lis: {sum(preds_val)} and Actual total lis (duns with nonzero lines): {val_data_target.sum()[0]}")
+print(f'RMSE: {rmse_val_s}')
+
+time_diff = (time.time()-t0)/60
+print(f"data process time is {time_diff} min")
+
+
+
+catboost_trian = CatBoostRegressor(n_estimators=1510,
+                                  loss_function='RMSE',
+                                  learning_rate=0.02,
+                                  depth=8, 
+                                  task_type='CPU',
+                                  random_state=1,
+                                  verbose=False)
+
+t0 = time.time()
+
+catboost_trian.fit(scaler_train, 
+                   train_data_target,
+                   cat_features=cat_features)
+
+preds_val = catboost_trian.predict(scaler_val)
+
+rmse_val_s = np.sqrt(mse(val_data_target.values, preds_val))
+
+print(f"total pred lis: {sum(preds_val)} and Actual total lis (duns with nonzero lines): {val_data_target.sum()[0]}")
+print(f'RMSE: {rmse_val_s}')
+
+time_diff = (time.time()-t0)/60
+print(f"data process time is {time_diff} min")
+
+
+cols = ['rpt_mth', 'duns_loc_num','zip5_cd', 'zip4_cd','lis_target_end_mth','jb_lis_1mth', 'naics_cd1','base_ga_future_3mth']
+duns_pred_val = pd.concat([val_data_key[cols], pd.DataFrame(preds_val),  val_data_feature[['zip54_cd']]], axis=1)
+duns_pred_val.columns = ['rpt_mth', 'duns_loc_num', 'zip5_cd','zip4_cd', 'lis_target_end_mth', 'lis_job_run', 'naics_cd', 'actual_cleu_ga', 'pred_lis','zip54_cd']
+
+
+pred_metrics='pred_lis'
+actual_metrics='lis_target_end_mth'
+
+val_duns_bins = get_bin_data(df=duns_pred_val,
+                             bins=20,
+                             pred_metrics=pred_metrics,
+                             actual_metrics=actual_metrics)
+
+
+plt.plot(val_duns_bins['bins'], val_duns_bins[pred_metrics],'-*', label=pred_metrics)
+
+# plt.plot(val_duns_bins['bins'], val_duns_bins[actual_metrics], '-o', label=actual_metrics + "_(X15)")
+plt.plot(val_duns_bins['bins'], val_duns_bins[actual_metrics]*1, '-o', label=actual_metrics)
+plt.legend()
+plt.xlabel('Bins', size=15)
+plt.ylabel('Lines or ' + actual_metrics + '(avg)', size=15)
+plt.xticks(rotation=45)
+
+features = scaler_train.columns
+importances = catboost_trian.feature_importances_
+indices = np.argsort(importances)
+
+# customized number 
+num_features = 32
+
+plt.figure(figsize=(10, 6))
+plt.title('Feature Importances')
+
+# only plot the customized number of features
+plt.barh(range(num_features), importances[indices[-num_features:]], color='b', align='center')
+plt.yticks(range(num_features), [features[i] for i in indices[-num_features:]])
+plt.xlabel('Relative Importance')
+plt.show()
+
+
+feature_imp_df = pd.concat([pd.DataFrame(scaler_train.columns),pd.DataFrame(catboost_trian.feature_importances_)], axis=1)
+feature_imp_df.columns = ['feature_names', 'importance_factor']
+feature_imp_df_s = feature_imp_df.sort_values(by='importance_factor', ascending=False).reset_index(drop=True)
+
+features = scaler_train.columns
+importances = catboost_trian.feature_importances_
+indices = np.argsort(importances)
+
+# customized number 
+num_features = 10
+
+plt.figure(figsize=(10, 6))
+plt.title('Feature Importances', size=15)
+
+# only plot the customized number of features
+plt.barh(range(num_features), importances[indices[-num_features:]], color='b', align='center')
+plt.yticks(range(num_features), [features[i] for i in indices[-num_features:]])
+plt.xlabel('Relative Importance', size=15)
+plt.show()
