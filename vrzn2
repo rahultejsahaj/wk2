@@ -23,3 +23,26 @@ for i, col_name in enumerate(feature_columns):
 # Step 4: Select only the required columns (original + scaled features) and convert to Pandas
 scaled_columns = [f"scaled_{col}" for col in feature_columns]
 final_df = scaled_df.select(scaled_columns).toPandas()
+
+
+
+# Function to scale features
+def get_feature_scaler(df, num_f):
+    df = df.fillna(0)
+    assembler = VectorAssembler(inputCols=num_f, outputCol='features')
+    scaler = StandardScaler(inputCol='features', outputCol='scaled_features', withMean=True, withStd=True)
+
+    pipeline = Pipeline(stages=[assembler, scaler])
+    pipeline_model = pipeline.fit(df)
+    scaled_df = pipeline_model.transform(df)
+    return scaled_df.select('scaled_features', *cat_features)
+
+# Scale the training and validation data
+scaler_train = get_feature_scaler(train_data_feature, num_f)
+scaler_val = get_feature_scaler(val_data_feature, num_f)
+# scaler_full_val = get_feature_scaler(full_val_data_feature, num_f)
+
+# Convert to Pandas DataFrame for CatBoost
+train_X = scaler_train.toPandas()
+train_y = train_data_target.toPandas()
+val_X = scaler_val.toPandas()
