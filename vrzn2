@@ -1,87 +1,27 @@
-from pyspark.ml.feature import VectorAssembler, StandardScaler
-from pyspark.sql.functions import col
-import pandas as pd
 
-# Step 1: Assemble features into a single vector column
-feature_columns = ['col1', 'col2', 'col3']  # Replace with your feature columns
-assembler = VectorAssembler(inputCols=feature_columns, outputCol="features_vector")
-df_vector = assembler.transform(df)
+# Initialize CatBoostRegressor
+catboost_train = CatBoostRegressor(n_estimators=12,
+                                loss_function='RMSE',
+                                learning_rate=0.02,
+                                depth=8, 
+                                task_type='CPU',
+                                random_state=1,
+                                verbose=False)
 
-# Step 2: Apply StandardScaler
-scaler = StandardScaler(inputCol="features_vector", outputCol="scaled_features", withMean=True, withStd=True)
-scaler_model = scaler.fit(df_vector)
-scaled_df = scaler_model.transform(df_vector)
+# Timing the fitting process
+t0 = time.time()
 
-# Step 3: Extract scaled features and convert to separate columns
-from pyspark.ml.functions import vector_to_array
-scaled_df = scaled_df.withColumn("scaled_features_array", vector_to_array("scaled_features"))
+# Fit the model
+catboost_train.fit(train_X, train_y, cat_features=cat_features)
 
-# Split the scaled features into individual columns
-for i, col_name in enumerate(feature_columns):
-    scaled_df = scaled_df.withColumn(f"scaled_{col_name}", col("scaled_features_array")[i])
+# Make predictions
+preds_val = catboost_train.predict(val_X)
 
-# Step 4: Select only the required columns (original + scaled features) and convert to Pandas
-scaled_columns = [f"scaled_{col}" for col in feature_columns]
-final_df = scaled_df.select(scaled_columns).toPandas()
+# val_y = val_data_target.toPandas()
 
+# Calculate RMSE
+rmse_val_s = np.sqrt(np.mean((val_y.values - preds_val) ** 2))
 
-
-# Function to scale features
-def get_feature_scaler(df, num_f):
-    df = df.fillna(0)
-    assembler = VectorAssembler(inputCols=num_f, outputCol='features')
-    scaler = StandardScaler(inputCol='features', outputCol='scaled_features', withMean=True, withStd=True)
-
-    pipeline = Pipeline(stages=[assembler, scaler])
-    pipeline_model = pipeline.fit(df)
-    scaled_df = pipeline_model.transform(df)
-    return scaled_df.select('scaled_features', *cat_features)
-
-# Scale the training and validation data
-scaler_train = get_feature_scaler(train_data_feature, num_f)
-scaler_val = get_feature_scaler(val_data_feature, num_f)
-# scaler_full_val = get_feature_scaler(full_val_data_feature, num_f)
-
-# Convert to Pandas DataFrame for CatBoost
-train_X = scaler_train.toPandas()
-train_y = train_data_target.toPandas()
-val_X = scaler_val.toPandas()
-
-
-
-
-from pyspark.ml.feature import VectorAssembler, StandardScaler
-from pyspark.ml import Pipeline
-from pyspark.ml.functions import vector_to_array
-from pyspark.sql.functions import col
-
-# Function to scale features and convert to Pandas DataFrame with individual columns
-def get_feature_scaler(df, num_f, cat_features):
-    # Fill NaNs with 0
-    df = df.fillna(0)
-    
-    # Assemble features into a single vector column
-    assembler = VectorAssembler(inputCols=num_f, outputCol='features')
-    scaler = StandardScaler(inputCol='features', outputCol='scaled_features', withMean=True, withStd=True)
-    
-    # Create and fit pipeline
-    pipeline = Pipeline(stages=[assembler, scaler])
-    pipeline_model = pipeline.fit(df)
-    scaled_df = pipeline_model.transform(df)
-    
-    # Convert scaled_features vector to array to split into individual columns
-    scaled_df = scaled_df.withColumn("scaled_features_array", vector_to_array("scaled_features"))
-    
-    # Extract individual columns from scaled_features_array
-    for i, col_name in enumerate(num_f):
-        scaled_df = scaled_df.withColumn(f"scaled_{col_name}", col("scaled_features_array")[i])
-    
-    # Select final columns and convert to Pandas DataFrame
-    final_columns = [f"scaled_{col}" for col in num_f] + cat_features
-    pandas_df = scaled_df.select(final_columns).toPandas()
-    
-    return pandas_df
-
-# Scale the training and validation data
-train_X = get_feature_scaler(train_data_feature, num_f, cat_features)
-val_X = get_feature_scaler(val_data_feature, num_f, cat_features)
+# Print results
+print(f"Total pred lis: {sum(preds_val)} and Actual total lis (duns with nonzero lines): {val_y.sum()[0]}")
+print(f'RMSE: {rmse_val_s}')
