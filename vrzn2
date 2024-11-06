@@ -50,3 +50,35 @@ with ThreadPoolExecutor(max_workers=num_threads) as executor:
 # Save predictions to disk
 predictions_df = pd.DataFrame(predictions, columns=["prediction"])
 predictions_df.to_csv("path/to/save_predictions.csv", index=False)
+
+
+
+
+
+
+
+# Set larger chunk size based on available memory
+chunk_size = 5_000_000
+
+# Repartition Spark DataFrame to use fewer, larger chunks
+df = df.repartition(df.count() // chunk_size)
+
+# Define the UDF as before
+from pyspark.sql.functions import pandas_udf, PandasUDFType, col
+import pandas as pd
+from catboost import CatBoostRegressor
+
+model = CatBoostRegressor()
+model.load_model("path/to/your_model.cbm")
+
+@pandas_udf("float", PandasUDFType.SCALAR)
+def predict_catboost_udf(*cols) -> pd.Series:
+    input_data = pd.concat(cols, axis=1)
+    return pd.Series(model.predict(input_data))
+
+# Apply the UDF on larger partitions
+df = df.withColumn("prediction", predict_catboost_udf(*[col(c) for c in feature_columns]))
+
+# Save the predictions with a suitable format
+df.write.mode("overwrite").parquet("path/to/save_predictions")
+
