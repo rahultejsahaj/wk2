@@ -1,47 +1,16 @@
-import pandas as pd
-import numpy as np
-import time
-from pyspark.sql.functions import pandas_udf
-from pyspark.sql.types import DoubleType
-from catboost import CatBoostRegressor
-from pyspark.sql import functions as F
+# Set chunk size
+chunk_size = 500_000
 
-# Assume train_X, train_y, and val_X are Spark DataFrames, with val_y available in Spark or Pandas.
+# Initialize an empty list to hold results
+predictions = []
 
-# Initialize and train the CatBoost model
-catboost_train = CatBoostRegressor(
-    n_estimators=12,
-    loss_function='RMSE',
-    learning_rate=0.02,
-    depth=8,
-    task_type='CPU',
-    random_state=1,
-    verbose=False
-)
+# Read and predict in chunks
+for start in range(0, len(data), chunk_size):
+    chunk = data[start:start + chunk_size]
+    chunk_predictions = model.predict(chunk[feature_columns])
+    
+    # Append predictions to the list
+    predictions.extend(chunk_predictions)
 
-# Train the model on a small sample or use existing trained model if available
-catboost_train.fit(train_X.toPandas(), train_y.toPandas(), cat_features=cat_features)
-
-# Broadcast the model for distributed predictions
-broadcasted_model = spark.sparkContext.broadcast(catboost_train)
-
-# Define the Pandas UDF for predictions
-@pandas_udf(DoubleType())
-def predict_udf(features: pd.DataFrame) -> pd.Series:
-    model = broadcasted_model.value  # Retrieve the broadcasted model
-    predictions = model.predict(features)  # Generate predictions
-    return pd.Series(predictions)
-
-# Perform predictions on Spark DataFrame
-val_X = val_X.withColumn("preds_val", predict_udf(F.struct(*[F.col(c) for c in val_X.columns])))
-
-# Collect results to Pandas for RMSE calculation
-preds_val_pd = val_X.select("preds_val").toPandas()
-val_y_pd = val_y.toPandas()  # Convert actual values to Pandas if not already
-
-# Calculate RMSE
-rmse_val_s = np.sqrt(np.mean((val_y_pd.values - preds_val_pd.values) ** 2))
-
-# Print results
-print(f"Total predicted sum: {preds_val_pd['preds_val'].sum()} and Actual total sum: {val_y_pd.sum()[0]}")
-print(f'RMSE: {rmse_val_s}')
+# Convert predictions to a DataFrame if needed
+predictions_df = pd.DataFrame(predictions, columns=["prediction"])
