@@ -1,3 +1,8 @@
 cols = ['rpt_mth', 'duns_loc_num','zip5_cd', 'zip4_cd','lis_target_end_mth','jb_lis_1mth', 'naics_cd1','base_ga_future_3mth']
 full_duns_pred_val = pd.concat([full_val_data_key[cols], pd.DataFrame(preds_val_full),  full_val_data_feature[['zip54_cd']]], axis=1)
 full_duns_pred_val.columns = ['rpt_mth', 'duns_loc_num', 'zip5_cd','zip4_cd', 'lis_target_end_mth', 'lis_job_run', 'naics_cd', 'actual_cleu_ga', 'pred_lis','zip54_cd']
+
+
+# Convert PySpark DataFrames to Pandas
+full_val_data_key_pd = full_val_data_key.select(cols).toPandas()
+full_val_data_feature_pd = full_val_data_feature.select("zip54_cd").toPandas()
