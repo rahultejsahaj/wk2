@@ -14,3 +14,39 @@ for start in range(0, len(data), chunk_size):
 
 # Convert predictions to a DataFrame if needed
 predictions_df = pd.DataFrame(predictions, columns=["prediction"])
+
+
+
+
+
+
+
+import pandas as pd
+from catboost import CatBoostRegressor
+from concurrent.futures import ThreadPoolExecutor
+
+# Load the CatBoost model
+model = CatBoostRegressor()
+model.load_model("path/to/your_model.cbm")
+
+# Set batch size and number of threads based on system capabilities
+batch_size = 5_000_000
+num_threads = 8  # Adjust based on CPU cores
+
+# Function to process a batch and predict
+def process_batch(chunk):
+    return model.predict(chunk[feature_columns])
+
+# List to store predictions
+predictions = []
+
+# Create thread pool
+with ThreadPoolExecutor(max_workers=num_threads) as executor:
+    # Split data into batches and process in parallel
+    for start in range(0, len(data), batch_size):
+        chunk = data[start:start + batch_size]
+        predictions.extend(executor.submit(process_batch, chunk).result())
+
+# Save predictions to disk
+predictions_df = pd.DataFrame(predictions, columns=["prediction"])
+predictions_df.to_csv("path/to/save_predictions.csv", index=False)
