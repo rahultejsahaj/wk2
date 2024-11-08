@@ -1,5 +1,3 @@
-from pyspark.sql import functions as F
-
 # Select the necessary columns in PySpark
 full_val_data_key_spark = full_val_data_key.select(cols)
 preds_val_full_spark = preds_val_full.select("pred_lis")  # Select only necessary columns from preds_val_full
@@ -12,15 +10,10 @@ full_duns_pred_val_spark = (
     .join(full_val_data_feature_spark, how="inner")
 )
 
-# Rename columns to match the final desired output
-full_duns_pred_val_spark = full_duns_pred_val_spark.withColumnRenamed("jb_lis_1mth", "lis_job_run") \
-    .withColumnRenamed("naics_cd1", "naics_cd") \
-    .withColumnRenamed("base_ga_future_3mth", "actual_cleu_ga")
-
 # Convert to Pandas
 full_duns_pred_val = full_duns_pred_val_spark.toPandas()
+
+# Rename columns if necessary (only if they don't already match)
 full_duns_pred_val.columns = ['rpt_mth', 'duns_loc_num', 'zip5_cd', 'zip4_cd', 
                               'lis_target_end_mth', 'lis_job_run', 'naics_cd', 
                               'actual_cleu_ga', 'pred_lis', 'zip54_cd']
-
-# `full_duns_pred_val` is now a Pandas DataFrame with the desired columns
