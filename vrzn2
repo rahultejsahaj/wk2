@@ -1,19 +1,239 @@
-# Select the necessary columns in PySpark
-full_val_data_key_spark = full_val_data_key.select(cols)
-preds_val_full_spark = preds_val_full.select("pred_lis")  # Select only necessary columns from preds_val_full
-full_val_data_feature_spark = full_val_data_feature.select("zip54_cd")
+---------------------------------------------------------------------------
+Py4JJavaError                             Traceback (most recent call last)
+<ipython-input-47-98f4b5b33b92> in <module>
+      1 # Convert to Pandas
+----> 2 full_duns_pred_val = full_duns_pred_val_spark.toPandas()
+      3 
+      4 # Rename columns if necessary (only if they don't already match)
+      5 full_duns_pred_val.columns = ['rpt_mth', 'duns_loc_num', 'zip5_cd', 'zip4_cd', 
 
-# Concatenate DataFrames in PySpark
-full_duns_pred_val_spark = (
-    full_val_data_key_spark
-    .join(preds_val_full_spark, how="inner")  # Specify join type as needed
-    .join(full_val_data_feature_spark, how="inner")
-)
+/usr/lib/spark/python/pyspark/sql/pandas/conversion.py in toPandas(self)
+    106                     # Rename columns to avoid duplicated column names.
+    107                     tmp_column_names = ['col_{}'.format(i) for i in range(len(self.columns))]
+--> 108                     batches = self.toDF(*tmp_column_names)._collect_as_arrow()
+    109                     if len(batches) > 0:
+    110                         table = pyarrow.Table.from_batches(batches)
 
-# Convert to Pandas
-full_duns_pred_val = full_duns_pred_val_spark.toPandas()
+/usr/lib/spark/python/pyspark/sql/pandas/conversion.py in _collect_as_arrow(self)
+    244         finally:
+    245             # Join serving thread and raise any exceptions from collectAsArrowToPython
+--> 246             jsocket_auth_server.getResult()
+    247 
+    248         # Separate RecordBatches from batch order indices in results
 
-# Rename columns if necessary (only if they don't already match)
-full_duns_pred_val.columns = ['rpt_mth', 'duns_loc_num', 'zip5_cd', 'zip4_cd', 
-                              'lis_target_end_mth', 'lis_job_run', 'naics_cd', 
-                              'actual_cleu_ga', 'pred_lis', 'zip54_cd']
+/usr/local/lib/python3.6/site-packages/py4j/java_gateway.py in __call__(self, *args)
+   1303         answer = self.gateway_client.send_command(command)
+   1304         return_value = get_return_value(
+-> 1305             answer, self.gateway_client, self.target_id, self.name)
+   1306 
+   1307         for temp_arg in temp_args:
+
+/usr/lib/spark/python/pyspark/sql/utils.py in deco(*a, **kw)
+    109     def deco(*a, **kw):
+    110         try:
+--> 111             return f(*a, **kw)
+    112         except py4j.protocol.Py4JJavaError as e:
+    113             converted = convert_exception(e.java_exception)
+
+/usr/local/lib/python3.6/site-packages/py4j/protocol.py in get_return_value(answer, gateway_client, target_id, name)
+    326                 raise Py4JJavaError(
+    327                     "An error occurred while calling {0}{1}{2}.\n".
+--> 328                     format(target_id, ".", name), value)
+    329             else:
+    330                 raise Py4JError(
+
+Py4JJavaError: An error occurred while calling o3889.getResult.
+: org.apache.spark.SparkException: Exception thrown in awaitResult: 
+	at org.apache.spark.util.ThreadUtils$.awaitResult(ThreadUtils.scala:301)
+	at org.apache.spark.security.SocketAuthServer.getResult(SocketAuthServer.scala:97)
+	at org.apache.spark.security.SocketAuthServer.getResult(SocketAuthServer.scala:93)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:357)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.GatewayConnection.run(GatewayConnection.java:238)
+	at java.lang.Thread.run(Thread.java:750)
+Caused by: org.apache.spark.SparkException: Job aborted due to stage failure: Task 2 in stage 137.0 failed 1 times, most recent failure: Lost task 2.0 in stage 137.0 (TID 13285) (run-672e06ffb3084b2c490baff1-47lms executor driver): org.apache.spark.api.python.PythonException: Traceback (most recent call last):
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/worker.py", line 604, in main
+    process()
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/worker.py", line 596, in process
+    serializer.dump_stream(out_iter, outfile)
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/sql/pandas/serializers.py", line 273, in dump_stream
+    return ArrowStreamSerializer.dump_stream(self, init_stream_yield_batches(), stream)
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/sql/pandas/serializers.py", line 81, in dump_stream
+    for batch in iterator:
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/sql/pandas/serializers.py", line 266, in init_stream_yield_batches
+    for series in iterator:
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/worker.py", line 450, in mapper
+    result = tuple(f(*[a[o] for o in arg_offsets]) for (arg_offsets, f) in udfs)
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/worker.py", line 450, in <genexpr>
+    result = tuple(f(*[a[o] for o in arg_offsets]) for (arg_offsets, f) in udfs)
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/worker.py", line 105, in <lambda>
+    verify_result_type(f(*a)), len(a[0])), arrow_return_type)
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/util.py", line 73, in wrapper
+    return f(*args, **kwargs)
+  File "<ipython-input-30-b5dd604953d6>", line 18, in predict_catboost_udf
+  File "/usr/local/lib64/python3.6/site-packages/catboost/core.py", line 5635, in predict
+    return self._predict(data, prediction_type, ntree_start, ntree_end, thread_count, verbose, 'predict', task_type)
+  File "/usr/local/lib64/python3.6/site-packages/catboost/core.py", line 2461, in _predict
+    predictions = self._base_predict(data, prediction_type, ntree_start, ntree_end, thread_count, verbose, task_type)
+  File "/usr/local/lib64/python3.6/site-packages/catboost/core.py", line 1757, in _base_predict
+    return self._object._base_predict(pool, prediction_type, ntree_start, ntree_end, thread_count, verbose, task_type)
+  File "_catboost.pyx", line 4721, in _catboost._CatBoost._base_predict
+  File "_catboost.pyx", line 4728, in _catboost._CatBoost._base_predict
+_catboost.CatBoostError: catboost/libs/data/model_dataset_compatibility.cpp:81: At position 10 should be feature with name scaled_pq_lis_1mth (found _10).
+
+	at org.apache.spark.api.python.BasePythonRunner$ReaderIterator.handlePythonException(PythonRunner.scala:517)
+	at org.apache.spark.sql.execution.python.PythonArrowOutput$$anon$1.read(PythonArrowOutput.scala:99)
+	at org.apache.spark.sql.execution.python.PythonArrowOutput$$anon$1.read(PythonArrowOutput.scala:49)
+	at org.apache.spark.api.python.BasePythonRunner$ReaderIterator.hasNext(PythonRunner.scala:470)
+	at org.apache.spark.InterruptibleIterator.hasNext(InterruptibleIterator.scala:37)
+	at scala.collection.Iterator$$anon$11.hasNext(Iterator.scala:491)
+	at scala.collection.Iterator$$anon$10.hasNext(Iterator.scala:460)
+	at scala.collection.Iterator$$anon$10.hasNext(Iterator.scala:460)
+	at scala.collection.Iterator.foreach(Iterator.scala:943)
+	at scala.collection.Iterator.foreach$(Iterator.scala:943)
+	at scala.collection.AbstractIterator.foreach(Iterator.scala:1431)
+	at org.apache.spark.sql.execution.joins.UnsafeCartesianRDD.compute(CartesianProductExec.scala:47)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:52)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.sql.execution.joins.UnsafeCartesianRDD.compute(CartesianProductExec.scala:53)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:52)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:52)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:52)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.scheduler.ResultTask.runTask(ResultTask.scala:90)
+	at org.apache.spark.scheduler.Task.run(Task.scala:131)
+	at org.apache.spark.executor.Executor$TaskRunner.$anonfun$run$3(Executor.scala:498)
+	at org.apache.spark.util.Utils$.tryWithSafeFinally(Utils.scala:1439)
+	at org.apache.spark.executor.Executor$TaskRunner.run(Executor.scala:501)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:750)
+
+Driver stacktrace:
+	at org.apache.spark.scheduler.DAGScheduler.failJobAndIndependentStages(DAGScheduler.scala:2304)
+	at org.apache.spark.scheduler.DAGScheduler.$anonfun$abortStage$2(DAGScheduler.scala:2253)
+	at org.apache.spark.scheduler.DAGScheduler.$anonfun$abortStage$2$adapted(DAGScheduler.scala:2252)
+	at scala.collection.mutable.ResizableArray.foreach(ResizableArray.scala:62)
+	at scala.collection.mutable.ResizableArray.foreach$(ResizableArray.scala:55)
+	at scala.collection.mutable.ArrayBuffer.foreach(ArrayBuffer.scala:49)
+	at org.apache.spark.scheduler.DAGScheduler.abortStage(DAGScheduler.scala:2252)
+	at org.apache.spark.scheduler.DAGScheduler.$anonfun$handleTaskSetFailed$1(DAGScheduler.scala:1124)
+	at org.apache.spark.scheduler.DAGScheduler.$anonfun$handleTaskSetFailed$1$adapted(DAGScheduler.scala:1124)
+	at scala.Option.foreach(Option.scala:407)
+	at org.apache.spark.scheduler.DAGScheduler.handleTaskSetFailed(DAGScheduler.scala:1124)
+	at org.apache.spark.scheduler.DAGSchedulerEventProcessLoop.doOnReceive(DAGScheduler.scala:2491)
+	at org.apache.spark.scheduler.DAGSchedulerEventProcessLoop.onReceive(DAGScheduler.scala:2433)
+	at org.apache.spark.scheduler.DAGSchedulerEventProcessLoop.onReceive(DAGScheduler.scala:2422)
+	at org.apache.spark.util.EventLoop$$anon$1.run(EventLoop.scala:49)
+	at org.apache.spark.scheduler.DAGScheduler.runJob(DAGScheduler.scala:902)
+	at org.apache.spark.SparkContext.runJob(SparkContext.scala:2204)
+	at org.apache.spark.SparkContext.runJob(SparkContext.scala:2299)
+	at org.apache.spark.sql.Dataset.$anonfun$collectAsArrowToPython$5(Dataset.scala:3642)
+	at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.java:23)
+	at org.apache.spark.util.Utils$.tryWithSafeFinally(Utils.scala:1439)
+	at org.apache.spark.sql.Dataset.$anonfun$collectAsArrowToPython$2(Dataset.scala:3646)
+	at org.apache.spark.sql.Dataset.$anonfun$collectAsArrowToPython$2$adapted(Dataset.scala:3623)
+	at org.apache.spark.sql.Dataset.$anonfun$withAction$1(Dataset.scala:3700)
+	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId$5(SQLExecution.scala:103)
+	at org.apache.spark.sql.execution.SQLExecution$.withSQLConfPropagated(SQLExecution.scala:163)
+	at org.apache.spark.sql.execution.SQLExecution$.$anonfun$withNewExecutionId$1(SQLExecution.scala:90)
+	at org.apache.spark.sql.SparkSession.withActive(SparkSession.scala:775)
+	at org.apache.spark.sql.execution.SQLExecution$.withNewExecutionId(SQLExecution.scala:64)
+	at org.apache.spark.sql.Dataset.withAction(Dataset.scala:3698)
+	at org.apache.spark.sql.Dataset.$anonfun$collectAsArrowToPython$1(Dataset.scala:3623)
+	at org.apache.spark.sql.Dataset.$anonfun$collectAsArrowToPython$1$adapted(Dataset.scala:3622)
+	at org.apache.spark.security.SocketAuthServer$.$anonfun$serveToStream$2(SocketAuthServer.scala:139)
+	at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.java:23)
+	at org.apache.spark.util.Utils$.tryWithSafeFinally(Utils.scala:1439)
+	at org.apache.spark.security.SocketAuthServer$.$anonfun$serveToStream$1(SocketAuthServer.scala:141)
+	at org.apache.spark.security.SocketAuthServer$.$anonfun$serveToStream$1$adapted(SocketAuthServer.scala:136)
+	at org.apache.spark.security.SocketFuncServer.handleConnection(SocketAuthServer.scala:113)
+	at org.apache.spark.security.SocketFuncServer.handleConnection(SocketAuthServer.scala:107)
+	at org.apache.spark.security.SocketAuthServer$$anon$1.$anonfun$run$4(SocketAuthServer.scala:68)
+	at scala.util.Try$.apply(Try.scala:213)
+	at org.apache.spark.security.SocketAuthServer$$anon$1.run(SocketAuthServer.scala:68)
+Caused by: org.apache.spark.api.python.PythonException: Traceback (most recent call last):
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/worker.py", line 604, in main
+    process()
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/worker.py", line 596, in process
+    serializer.dump_stream(out_iter, outfile)
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/sql/pandas/serializers.py", line 273, in dump_stream
+    return ArrowStreamSerializer.dump_stream(self, init_stream_yield_batches(), stream)
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/sql/pandas/serializers.py", line 81, in dump_stream
+    for batch in iterator:
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/sql/pandas/serializers.py", line 266, in init_stream_yield_batches
+    for series in iterator:
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/worker.py", line 450, in mapper
+    result = tuple(f(*[a[o] for o in arg_offsets]) for (arg_offsets, f) in udfs)
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/worker.py", line 450, in <genexpr>
+    result = tuple(f(*[a[o] for o in arg_offsets]) for (arg_offsets, f) in udfs)
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/worker.py", line 105, in <lambda>
+    verify_result_type(f(*a)), len(a[0])), arrow_return_type)
+  File "/usr/lib/spark/python/lib/pyspark.zip/pyspark/util.py", line 73, in wrapper
+    return f(*args, **kwargs)
+  File "<ipython-input-30-b5dd604953d6>", line 18, in predict_catboost_udf
+  File "/usr/local/lib64/python3.6/site-packages/catboost/core.py", line 5635, in predict
+    return self._predict(data, prediction_type, ntree_start, ntree_end, thread_count, verbose, 'predict', task_type)
+  File "/usr/local/lib64/python3.6/site-packages/catboost/core.py", line 2461, in _predict
+    predictions = self._base_predict(data, prediction_type, ntree_start, ntree_end, thread_count, verbose, task_type)
+  File "/usr/local/lib64/python3.6/site-packages/catboost/core.py", line 1757, in _base_predict
+    return self._object._base_predict(pool, prediction_type, ntree_start, ntree_end, thread_count, verbose, task_type)
+  File "_catboost.pyx", line 4721, in _catboost._CatBoost._base_predict
+  File "_catboost.pyx", line 4728, in _catboost._CatBoost._base_predict
+_catboost.CatBoostError: catboost/libs/data/model_dataset_compatibility.cpp:81: At position 10 should be feature with name scaled_pq_lis_1mth (found _10).
+
+	at org.apache.spark.api.python.BasePythonRunner$ReaderIterator.handlePythonException(PythonRunner.scala:517)
+	at org.apache.spark.sql.execution.python.PythonArrowOutput$$anon$1.read(PythonArrowOutput.scala:99)
+	at org.apache.spark.sql.execution.python.PythonArrowOutput$$anon$1.read(PythonArrowOutput.scala:49)
+	at org.apache.spark.api.python.BasePythonRunner$ReaderIterator.hasNext(PythonRunner.scala:470)
+	at org.apache.spark.InterruptibleIterator.hasNext(InterruptibleIterator.scala:37)
+	at scala.collection.Iterator$$anon$11.hasNext(Iterator.scala:491)
+	at scala.collection.Iterator$$anon$10.hasNext(Iterator.scala:460)
+	at scala.collection.Iterator$$anon$10.hasNext(Iterator.scala:460)
+	at scala.collection.Iterator.foreach(Iterator.scala:943)
+	at scala.collection.Iterator.foreach$(Iterator.scala:943)
+	at scala.collection.AbstractIterator.foreach(Iterator.scala:1431)
+	at org.apache.spark.sql.execution.joins.UnsafeCartesianRDD.compute(CartesianProductExec.scala:47)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:52)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.sql.execution.joins.UnsafeCartesianRDD.compute(CartesianProductExec.scala:53)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:52)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:52)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:52)
+	at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:373)
+	at org.apache.spark.rdd.RDD.iterator(RDD.scala:337)
+	at org.apache.spark.scheduler.ResultTask.runTask(ResultTask.scala:90)
+	at org.apache.spark.scheduler.Task.run(Task.scala:131)
+	at org.apache.spark.executor.Executor$TaskRunner.$anonfun$run$3(Executor.scala:498)
+	at org.apache.spark.util.Utils$.tryWithSafeFinally(Utils.scala:1439)
+	at org.apache.spark.executor.Executor$TaskRunner.run(Executor.scala:501)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:750)
+
