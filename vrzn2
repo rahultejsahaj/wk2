@@ -1,18 +1,48 @@
-pred_metrics='preds_val'
-actual_metrics='lis_target_end_mth'
+from pyspark.sql import functions as F
+from pyspark.sql import Window
 
-#full_val_data_feature_final
+def get_bin_data(df, bins, pred_metrics, actual_metrics):
+    # Calculate bin boundaries based on percentiles of the `pred_metrics` column
+    percentiles = [i / bins for i in range(1, bins)]
+    quantiles = df.approxQuantile(pred_metrics, percentiles, 0.0)
+    
+    # Create bin boundaries
+    bin_expr = F.when(F.col(pred_metrics) < quantiles[0], 0)
+    for i, q in enumerate(quantiles[:-1]):
+        bin_expr = bin_expr.when((F.col(pred_metrics) >= q) & (F.col(pred_metrics) < quantiles[i + 1]), i + 1)
+    bin_expr = bin_expr.otherwise(len(quantiles))
 
-full_val_duns_bins = get_bin_data(df=full_val_data_feature_final,
-                             bins=20,
-                             pred_metrics=pred_metrics,
-                             actual_metrics=actual_metrics)
+    # Add a column with the bin number
+    df = df.withColumn("bins", bin_expr)
+    
+    # Calculate average predicted and actual values for each bin
+    grouped_df = df.groupBy("bins").agg(
+        F.avg(pred_metrics).alias(pred_metrics),
+        F.avg(actual_metrics).alias(actual_metrics)
+    ).orderBy("bins")
+    
+    return grouped_df
 
-plt.plot(full_val_duns_bins['bins'], full_val_duns_bins[pred_metrics],'-*', label=pred_metrics)
 
-# plt.plot(val_duns_bins['bins'], val_duns_bins[actual_metrics], '-o', label=actual_metrics + "_(X15)")
-plt.plot(full_val_duns_bins['bins'], full_val_duns_bins[actual_metrics]*1, '-o', label=actual_metrics)
+# Assuming `full_val_data_feature_final` is your PySpark DataFrame
+full_val_duns_bins = get_bin_data(
+    df=full_val_data_feature_final,
+    bins=20,
+    pred_metrics=pred_metrics,
+    actual_metrics=actual_metrics
+)
+
+
+# Convert to Pandas DataFrame for plotting
+full_val_duns_bins_pd = full_val_duns_bins.toPandas()
+
+# Plot
+import matplotlib.pyplot as plt
+
+plt.plot(full_val_duns_bins_pd['bins'], full_val_duns_bins_pd[pred_metrics], '-*', label=pred_metrics)
+plt.plot(full_val_duns_bins_pd['bins'], full_val_duns_bins_pd[actual_metrics], '-o', label=actual_metrics)
 plt.legend()
 plt.xlabel('Bins', size=15)
 plt.ylabel('Lines or ' + actual_metrics + '(avg)', size=15)
 plt.xticks(rotation=45)
+plt.show()
