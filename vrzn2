@@ -1,41 +1,18 @@
-import pandas as pd
-import catboost
-from pyspark.sql import SparkSession
+pred_metrics='preds_val'
+actual_metrics='lis_target_end_mth'
 
-# Load the CatBoost model
-model = catboost.CatBoostRegressor()
-model.load_model("path_to_your_model")
+#full_val_data_feature_final
 
-# Get the expected feature names from the model
-expected_features = model.feature_names_
+full_val_duns_bins = get_bin_data(df=full_val_data_feature_final,
+                             bins=20,
+                             pred_metrics=pred_metrics,
+                             actual_metrics=actual_metrics)
 
-# Load or define your Spark DataFrame
-# Example of loading a DataFrame
-# spark = SparkSession.builder.getOrCreate()
-# full_duns_pred_val_spark = spark.read.csv("path_to_your_csv")
+plt.plot(full_val_duns_bins['bins'], full_val_duns_bins[pred_metrics],'-*', label=pred_metrics)
 
-# Check if all expected features are in the DataFrame columns
-actual_features = full_duns_pred_val_spark.columns
-
-# Check for missing and extra features
-missing_features = [feature for feature in expected_features if feature not in actual_features]
-extra_features = [feature for feature in actual_features if feature not in expected_features]
-
-# Print validation results
-if missing_features:
-    print("Missing features in DataFrame:", missing_features)
-else:
-    print("All expected features are present.")
-
-if extra_features:
-    print("Extra features in DataFrame:", extra_features)
-else:
-    print("No unexpected features in DataFrame.")
-
-# If there are missing features, stop here and fix the DataFrame
-if missing_features or extra_features:
-    print("Feature mismatch detected. Adjust your DataFrame columns to match the expected features.")
-else:
-    # Proceed to convert Spark DataFrame to Pandas if all features match
-    full_duns_pred_val = full_duns_pred_val_spark.toPandas()
-    print("Feature validation passed. DataFrame is ready for prediction.")
+# plt.plot(val_duns_bins['bins'], val_duns_bins[actual_metrics], '-o', label=actual_metrics + "_(X15)")
+plt.plot(full_val_duns_bins['bins'], full_val_duns_bins[actual_metrics]*1, '-o', label=actual_metrics)
+plt.legend()
+plt.xlabel('Bins', size=15)
+plt.ylabel('Lines or ' + actual_metrics + '(avg)', size=15)
+plt.xticks(rotation=45)
